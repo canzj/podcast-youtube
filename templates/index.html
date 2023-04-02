@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Podcast Manager</title>
+</head>
+<body>
+<h1>Podcast Manager</h1>
+<h2>Channels</h2>
+<ul>
+    {% for channel in channels %}
+        <li>
+            {{ channel.title }} - {{ channel.description }} <br>
+            <a href="{{ url_for('get_feed', channel_id=channel_id(channel)) }}">Feed</a> -
+            <form action="{{ url_for('remove_channel', channel_id=channel_id(channel)) }}" method="POST" style="display:inline;">
+                <button type="submit">Delete</button>
+            </form>
+        </li>
+    {% endfor %}
+</ul>
+<h2>Add Channel</h2>
+<form action="{{ url_for('create_channel') }}" method="POST">
+    <label for="rss_url">RSS URL:</label>
+    <input type="text" id="rss_url" name="rss_url" required>
+    <button type="submit">Add Channel</button>
+</form>
+</body>
+</html>
