@@ -1,0 +1,8 @@
+APScheduler
+feedgen
+feedparser
+Flask
+python_dateutil
+pytz
+PyYAML
+git+https://github.com/ytdl-org/youtube-dl.git@master#egg=youtube_dl
