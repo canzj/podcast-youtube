@@ -13,8 +13,14 @@
         <li>
             {{ channel.title }} - {{ channel.description }} <br>
             <a href="{{ url_for('get_feed', channel_id=channel_id(channel)) }}">Feed</a> -
-            <form action="{{ url_for('remove_channel', channel_id=channel_id(channel)) }}" method="POST" style="display:inline;">
+            <form action="{{ url_for('remove_channel', channel_id=channel_id(channel)) }}" method="POST"
+                  style="display:inline;">
                 <button type="submit">Delete</button>
+            </form>
+            -
+            <form action="{{ url_for('fetch_channel', channel_id=channel_id(channel)) }}" method="POST"
+                  style="display:inline;">
+                <button type="submit">Update</button>
             </form>
         </li>
     {% endfor %}

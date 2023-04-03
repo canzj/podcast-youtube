@@ -13,12 +13,14 @@ def crawl_channel(channel: Channel) -> list[FeedEntry]:
     feed = feedparser.parse(channel.rss)
     for entry in feed.entries:
         try:
-            audio_name = downloader.download_mp3(entry.link, config.get_audio_dir_path(channel.get_channel_id()))
+            audio_name, thumbnail_url = downloader.download_mp3(entry.link,
+                                                                config.get_audio_dir_path(channel.get_channel_id()))
         except Exception as e:
             print(f"[Failed] Download {entry}, skipped: {e}")
             continue
         feed_entry = FeedEntry.from_feedparser_dict(entry)
         feed_entry.audio_url = config.build_audio_api_path(channel.get_channel_id(), audio_name)
+        feed_entry.thumbnail_url = thumbnail_url
         entries.append(feed_entry)
     return entries
 

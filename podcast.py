@@ -1,14 +1,15 @@
 import atexit
 import logging
-import os.path
+import os
+import signal
 import sys
 
 from apscheduler.schedulers.background import BackgroundScheduler
 
 import config
+import crawler
 import downloader
 import feed_manager
-import crawler
 
 
 def fetch_one_channel(channel):
@@ -20,7 +21,12 @@ def fetch_one_channel(channel):
         raise ValueError(f"Failed to update feed for {channel.get_channel_id()}: {e}")
 
 
+def fetch_update_of_channel(channel_id):
+    fetch_one_channel(feed_manager.watchlist_manager().get_channel(channel_id))
+
+
 def fetch_all_channel():
+    logging.info("Start fetching all channels...")
     for feed_entry in feed_manager.watchlist_manager().get_all_channels():
         fetch_one_channel(feed_entry)
 
@@ -57,9 +63,15 @@ def get_audio_directory(channel_id):
     return os.path.join(config.get_audio_dir_path(channel_id))
 
 
+def setup_signal_handlers():
+    signals_to_handle = [signal.SIGINT, signal.SIGTERM, signal.SIGQUIT]
+    for sig in signals_to_handle:
+        signal.signal(sig, lambda signum, frame: signal_handler(signum, frame))
+
+
 def signal_handler(signum, frame):
     """
-    clean up before exit
+    Clean up before exit
     :param signum:
     :param frame:
     :return:
@@ -76,3 +88,4 @@ def setup(update_period_in_hours):
     scheduler.start()
     # clean up before exit
     atexit.register(downloader.download_manager().shutdown)
+    setup_signal_handlers()
