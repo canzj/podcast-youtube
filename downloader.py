@@ -11,7 +11,7 @@ def download_manager():
     return _download_manger
 
 
-def download_mp3(video_url, dest_path) -> str:
+def download_mp3(video_url, dest_path) -> (str, str):
     ydl_opts = {
         'format': 'bestaudio/best',
         'download_archive': os.path.join(dest_path, 'downloaded.log'),
@@ -26,6 +26,7 @@ def download_mp3(video_url, dest_path) -> str:
     }
 
     file_name = None
+    thumbnail_url = None
     with youtube_dl.YoutubeDL(ydl_opts) as ydl:
         for i in range(3):
             try:
@@ -33,6 +34,8 @@ def download_mp3(video_url, dest_path) -> str:
                     info_dict = ydl.extract_info(video_url, download=False)
                     file_path = ydl.prepare_filename(info_dict)
                     file_name = os.path.splitext(os.path.basename(file_path))[0]
+                    if 'thumbnail' in info_dict:
+                        thumbnail_url = info_dict['thumbnail']
                     logging.info(f"[fetching video name] successfully, url: {video_url}")
                     break
             except Exception as e:
@@ -41,7 +44,7 @@ def download_mp3(video_url, dest_path) -> str:
         else:
             raise Exception("[fetching video name] failed after 3 retries")
         _download_manger.add_task(video_url, ydl_opts)
-    return f"{file_name}.mp3"
+    return f"{file_name}.mp3", thumbnail_url
 
 
 def download_file(video_url, ydl_opts: dict):
@@ -90,10 +93,12 @@ class DownloadManager:
         self.queue.put((video_url, ydl_opts))
 
     def shutdown(self):
+        logging.warning("Download manager shutting down")
         for _ in range(self.thread_count):
             self.queue.put(self._sentinel)  # Put the sentinel value into the queue for each thread
         for thread in self.threads:
             thread.join()  # Wait for the threads to exit
+        logging.warning("Download manager shutdown")
 
 
 _download_manger = DownloadManager(thread_count=2)

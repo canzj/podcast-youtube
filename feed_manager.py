@@ -90,6 +90,8 @@ def update_feed(channel: Channel, feed_entries: list[FeedEntry]):
     fg.link(href=channel.rss)
     fg.description(channel.description if channel.description else "null")
     fg.language("zh-cn")
+    if feed_entries:
+        fg.image(feed_entries[0].thumbnail_url)
     # todo bug
     # if len(sorted_unique_entries) > 0:
     #     fg.author({'name': sorted_unique_entries[0].author, 'email': 'none@none.com'})

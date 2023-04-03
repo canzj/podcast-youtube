@@ -2,13 +2,14 @@ from feedparser import FeedParserDict
 
 
 class FeedEntry:
-    def __init__(self, title, link, author, description, pub_date, audio_url):
+    def __init__(self, title, link, author, description, pub_date, audio_url, thumbnail_url):
         self.title = title
         self.link = link
         self.author = author
         self.description = description
         self.pub_date = pub_date
         self.audio_url = audio_url
+        self.thumbnail_url = thumbnail_url
 
     def to_feedparser_entry(self) -> FeedParserDict:
         entry = FeedParserDict()
@@ -18,12 +19,12 @@ class FeedEntry:
         entry.description = self.description
         entry.published = self.pub_date
 
-        enclosure = FeedParserDict()
-        enclosure.href = self.audio_url
-        enclosure.length = 0
-        enclosure.type = "audio/mpeg"
+        audio = FeedParserDict()
+        audio.href = self.audio_url
+        audio.length = 0
+        audio.type = "audio/mpeg"
 
-        entry.enclosures = [enclosure]
+        entry.enclosures = [audio]
 
         return entry
 
@@ -36,7 +37,7 @@ class FeedEntry:
             entry.description,
             entry.published,
             # entry.enclosures[0].href,
-            None
+            None, None
         )
 
     def to_dict(self):
@@ -47,6 +48,7 @@ class FeedEntry:
             "description": self.description,
             "pub_date": self.pub_date,
             "audio_url": self.audio_url,
+            "thumbnail_url": self.thumbnail_url
         }
 
     @classmethod
@@ -58,4 +60,5 @@ class FeedEntry:
             description=data['description'],
             pub_date=data['pub_date'],
             audio_url=data['audio_url'],
+            thumbnail_url=data['thumbnail_url']
         )
