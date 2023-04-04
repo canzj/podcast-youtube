@@ -60,9 +60,8 @@ def remove_channel(channel_id):
 
 @app.route('/api/channels/<channel_id>/fetch', methods=['POST'])
 def fetch_channel(channel_id):
-    channel = podcast.fetch_one_channel(channel_id)
-    podcast.fetch_one_channel(channel)
-    return jsonify({'success': True})
+    podcast.fetch_update_of_channel(channel_id)
+    return redirect(url_for('get_feed', channel_id=channel_id), code=302)
 
 
 @app.route('/feed/<channel_id>')
@@ -75,7 +74,8 @@ def get_feed(channel_id):
 def get_audio(channel_id, audio_name):
     # if allowed_file(audio_name):
     audio_directory = podcast.get_audio_directory(channel_id)
-    return send_from_directory(audio_directory, audio_name, mimetype='audio/mpeg', conditional=True, as_attachment=False)
+    return send_from_directory(audio_directory, audio_name, mimetype='audio/mpeg', conditional=True,
+                               as_attachment=False)
 
 
 # The following functions are used by the template
