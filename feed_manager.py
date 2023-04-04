@@ -73,9 +73,6 @@ def update_feed(channel: Channel, feed_entries: list[FeedEntry]):
         latest_entries.append(latest_entry)
     all_entries = latest_entries + origin_entries
 
-    # Keep track of unique title and link combinations
-    unique_entries = []
-
     # Get unique entries using a list comprehension
     unique_entries = [entry for i, entry in enumerate(all_entries) if
                       entry.link not in [e.link for e in all_entries[:i]]]
@@ -101,7 +98,7 @@ def update_feed(channel: Channel, feed_entries: list[FeedEntry]):
         fe = fg.add_entry()
         fe.title(entry.title)
         fe.link(href=entry.link)
-        fe.description(entry.description)
+        fe.description = getattr(entry, 'description', None)
         fe.pubDate(entry.published)
         cur_enclosure_href = config.build_audio_api_path(channel.get_channel_id(), entry.enclosures[0].href)
         fe.enclosure(cur_enclosure_href, entry.enclosures[0].length, entry.enclosures[0].type)

@@ -1,3 +1,8 @@
+import gevent
+from gevent import monkey
+
+monkey.patch_all()
+
 import feedparser
 
 import config
@@ -11,17 +16,28 @@ def crawl_channel(channel: Channel) -> list[FeedEntry]:
     """Crawl a channel and return a list of new entries."""
     entries = []
     feed = feedparser.parse(channel.rss)
-    for entry in feed.entries:
+
+    def download(e):
         try:
-            audio_name, thumbnail_url = downloader.download_mp3(entry.link,
+            audio_name, thumbnail_url = downloader.download_mp3(e.link,
                                                                 config.get_audio_dir_path(channel.get_channel_id()))
+            return e, audio_name, thumbnail_url
         except Exception as e:
-            print(f"[Failed] Download {entry}, skipped: {e}")
-            continue
+            print(f"[Failed] Download {e}, skipped: {e}")
+
+    greenlets = []
+    for entry in feed.entries:
+        greenlets.append(gevent.spawn(download, entry))
+
+    greenlets = gevent.joinall(greenlets)
+
+    for greenlet in greenlets:
+        entry, audio_name, thumbnail_url = greenlet.value
         feed_entry = FeedEntry.from_feedparser_dict(entry)
         feed_entry.audio_url = config.build_audio_api_path(channel.get_channel_id(), audio_name)
         feed_entry.thumbnail_url = thumbnail_url
         entries.append(feed_entry)
+
     return entries
 
 
