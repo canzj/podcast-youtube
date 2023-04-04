@@ -1,17 +1,17 @@
 import logging
 import os
-import queue
-import threading
 import time
 
 import youtube_dl
+from gevent.pool import Pool
+from gevent.queue import Queue
 
 
 def download_manager():
     return _download_manger
 
 
-def download_mp3(video_url, dest_path) -> str:
+def download_mp3(video_url, dest_path) -> (str, str):
     ydl_opts = {
         'format': 'bestaudio/best',
         'download_archive': os.path.join(dest_path, 'downloaded.log'),
@@ -26,6 +26,7 @@ def download_mp3(video_url, dest_path) -> str:
     }
 
     file_name = None
+    thumbnail_url = None
     with youtube_dl.YoutubeDL(ydl_opts) as ydl:
         for i in range(3):
             try:
@@ -33,6 +34,8 @@ def download_mp3(video_url, dest_path) -> str:
                     info_dict = ydl.extract_info(video_url, download=False)
                     file_path = ydl.prepare_filename(info_dict)
                     file_name = os.path.splitext(os.path.basename(file_path))[0]
+                    if 'thumbnail' in info_dict:
+                        thumbnail_url = info_dict['thumbnail']
                     logging.info(f"[fetching video name] successfully, url: {video_url}")
                     break
             except Exception as e:
@@ -41,7 +44,7 @@ def download_mp3(video_url, dest_path) -> str:
         else:
             raise Exception("[fetching video name] failed after 3 retries")
         _download_manger.add_task(video_url, ydl_opts)
-    return f"{file_name}.mp3"
+    return f"{file_name}.mp3", thumbnail_url
 
 
 def download_file(video_url, ydl_opts: dict):
@@ -61,17 +64,17 @@ def download_file(video_url, ydl_opts: dict):
 
 class DownloadManager:
     _instance = None
-    _sentinel = object()  # Add a sentinel value
+    _sentinel = object()
 
-    def __new__(cls, thread_count=4):
+    def __new__(cls, greenlet_count=4):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
-            cls._instance.thread_count = thread_count
-            cls._instance.queue = queue.Queue()
-            cls._instance.threads = [threading.Thread(target=cls._instance._download_worker) for _ in
-                                     range(thread_count)]
-            for thread in cls._instance.threads:
-                thread.start()
+            cls._instance.greenlet_count = greenlet_count
+            cls._instance.queue = Queue()
+            cls._instance.pool = Pool(greenlet_count)
+            cls._instance.greenlets = []
+            for _ in range(greenlet_count):
+                cls._instance.greenlets.append(cls._instance.pool.spawn(cls._instance._download_worker))
         return cls._instance
 
     def _download_worker(self):
@@ -84,16 +87,16 @@ class DownloadManager:
                 download_file(video_url, ydl_opts)
             except Exception as e:
                 logging.warning(f"Download failed: {e}, url: {video_url}, opts: {ydl_opts}, skipped")
-            self.queue.task_done()
 
     def add_task(self, video_url, ydl_opts: dict):
         self.queue.put((video_url, ydl_opts))
 
     def shutdown(self):
-        for _ in range(self.thread_count):
-            self.queue.put(self._sentinel)  # Put the sentinel value into the queue for each thread
-        for thread in self.threads:
-            thread.join()  # Wait for the threads to exit
+        logging.warning("Download manager shutting down")
+        for _ in range(self.greenlet_count):
+            self.queue.put(self._sentinel)  # Put the sentinel value into the queue for each greenlet
+        self.pool.join()  # Wait for the greenlets to complete tasks
+        logging.warning("Download manager shutdown")
 
 
-_download_manger = DownloadManager(thread_count=2)
+_download_manger = DownloadManager(greenlet_count=2)

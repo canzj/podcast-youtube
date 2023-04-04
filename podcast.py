@@ -3,6 +3,7 @@ import logging
 import os.path
 import sys
 
+import gevent
 from apscheduler.schedulers.background import BackgroundScheduler
 
 import config
@@ -64,8 +65,8 @@ def signal_handler(signum, frame):
     :param frame:
     :return:
     """
-    print(f"Received signal {signum}. Shutting down...")
-    downloader.download_manager().shutdown()
+    print(f"Signal {signum} received, shutting down...")
+    gevent.spawn(downloader.download_manager().shutdown)
     sys.exit(0)
 
 
